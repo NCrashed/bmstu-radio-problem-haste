@@ -1,6 +1,6 @@
 module Main where
 
-import Haste hiding (sytle)
+import Haste hiding (style)
 import Haste.Graphics.Canvas
 import Haste.Perch
 import Prelude hiding(id)
