@@ -17,8 +17,8 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 source-repository head
-type: git
-location: https://github.com/NCrashed/bmstu-radio-problem-haste
+  type: git
+  location: https://github.com/NCrashed/bmstu-radio-problem-haste
 
 flag haste-inst
   Description: either if it is being compiled with haste-inst or with cabal
