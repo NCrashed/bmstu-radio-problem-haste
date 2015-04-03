@@ -1,9 +1,11 @@
 module Main where
 
+import Haste
 import Haste.HPlay.View hiding (head)
 
 import Radio.Field
-import Radio.Tower 
+import Radio.Task
+import Control.Monad.IO.Class
 
 main :: IO (Maybe ())
-main = runBody $ fieldConfig (10, 10) 50 [Tower 1 1 2]
+main = runBody $ center <<< (fieldConfigWidget initialInput 50 >> return ())
