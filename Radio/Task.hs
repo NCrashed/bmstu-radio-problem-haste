@@ -31,7 +31,7 @@ initialInput :: Input
 initialInput = Input {
     inputFieldSize = (10, 10),
     inputTowers = [],
-    inputRadius = 5,
+    inputRadius = 2,
     inputFitness = "0.0"
   }
 
