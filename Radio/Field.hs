@@ -14,10 +14,18 @@ import Radio.Task
 
 fieldConfigWidget :: Input -> Double -> Widget Input
 fieldConfigWidget input cellSize = do
-  writeLog $ show $ inputTowers input
-  fieldConfig input cellSize `wcallback` (\newInput -> fieldConfigWidget newInput cellSize)
-  -- <|> 
-
+  --writeLog $ show $ inputTowers input
+  (radiusCntl <++ br <|> field ) `wcallback` (\newInput -> fieldConfigWidget newInput cellSize)
+  where
+    field = fieldConfig input cellSize 
+    radiusCntl = do
+      let f = inputInt (Just $ inputRadius input) ! atr "size" "5" `fire` OnKeyUp
+          incBtn = wbutton (inputRadius input + 1) "+" `fire` OnClick
+          decBtn = wbutton (inputRadius input - 1) "-" `fire` OnClick
+      newRadius <- label "Радиус: " ++> incBtn <|> f <|> decBtn
+      return $ if (newRadius > 0) 
+        then input { inputRadius = newRadius }
+        else input 
 
 fieldConfig :: Input -> Double -> Widget Input
 fieldConfig input cellSize = do
@@ -34,7 +42,7 @@ fieldConfig input cellSize = do
       placeToCell = translate (0.35*cellSize/2, margin*cellSize)
       drawTower t = do
         placeToCell $ scaleToCell $ tower (0.65*cellSize, cellSize) (RGB 0 0 0)
-        translate (cellSize/2, cellSize/2) $ stroke $ circle (0, 0) (cellSize * fromIntegral (towerRadius t))
+        translate (cellSize/2, cellSize/2) $ stroke $ circle (0, 0) (cellSize * (0.5 + fromIntegral (towerRadius t)))
       placeTower t = translate (fst gridOffset + fromIntegral (towerX t) * cellSize
                               , snd gridOffset + fromIntegral (towerY t) * cellSize)
       drawTowers = mapM_ (\t -> placeTower t $ drawTower t) towers
