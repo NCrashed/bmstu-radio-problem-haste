@@ -1,7 +1,6 @@
 module Radio.Grid where
 
 import Haste.Graphics.Canvas
-import Prelude hiding(id)
 
 data Grid = Grid {
   drawGrid :: Picture (),
@@ -20,11 +19,8 @@ grid xsize ysize cellSize = Grid {
       fromIntegral cy * cellSize)
   }
   where
-    width = fromIntegral xsize * cellSize  
-    height = fromIntegral ysize * cellSize
-    
     makeColumns = mapM_ (\row -> makeLine row) [0 .. ysize-1]
-    makeLine row = mapM_ (\col -> cell row col) [0 .. xsize-1]
+    makeLine row = mapM_ (\col -> cell col row) [0 .. xsize-1]
       where 
         cell x y = 
           let dx = fromIntegral x * cellSize
