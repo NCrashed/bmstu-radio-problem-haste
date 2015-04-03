@@ -22,5 +22,5 @@ main = do
 
 animate :: Canvas -> Double -> IO ()
 animate can angle = do
-	let testGrid = grid 5 7 50
+  let testGrid = grid 5 7 50
   render can $ drawGrid testGrid
