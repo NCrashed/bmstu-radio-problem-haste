@@ -24,20 +24,91 @@ cbutton x slabel= static $ do
 fieldConfigWidget :: Input -> Double -> Widget Input
 fieldConfigWidget input cellSize = do
   --writeLog $ show $ inputTowers input
-  (div ! atr "class" "row-fluid vertical-align" <<<
-    (   div ! atr "class" "col-md-4" <<< radiusCntl
-    <|> div ! atr "class" "col-md-8" <<< field ))
+  (div ! atr "class" "row vertical-align" <<<
+    (   div ! atr "class" "col-md-6" <<< editingCntl
+    <|> div ! atr "class" "col-md-6" <<< field ))
     `wcallback` (\newInput -> fieldConfigWidget newInput cellSize)
   where
     field = fieldConfig input cellSize 
+
+    bsrow = div ! atr "class" "row"
+
+    editingCntl :: Widget Input
+    editingCntl = bsrow <<<
+          (div ! atr "class" "col-md-8" <<< radiusCntl <|> evolOptionsCnt) 
+      <|> (div ! atr "class" "col-md-4" <<< fitnessCntl)
+
+    radiusCntl :: Widget Input
     radiusCntl = do
-      let f = inputInt (Just $ inputRadius input) ! atr "size" "5" `fire` OnKeyUp
+      let f = inputInt (Just $ inputRadius input) ! atr "size" "2"
+              `fire` OnKeyUp
           incBtn = cbutton (inputRadius input + 1) "+" `fire` OnClick
           decBtn = cbutton (inputRadius input - 1) "-" `fire` OnClick
-      newRadius <- label ("Радиус: " :: JSString) ++> incBtn <|> f <|> decBtn
-      return $ if (newRadius > 0) 
-        then input { inputRadius = newRadius }
-        else input 
+      newRadius <- bsrow ! atr "style" "margin-bottom: 40px" <<<
+          (div ! atr "class" "col-md-12" <<< (label ("Радиус: " :: JSString) ++> incBtn <|> f <|> decBtn) )
+          `validate` (\r -> return $ if r > 0 then Nothing else Just $ b ("радиус отрицателен" :: JSString))
+      return $ input {
+        inputRadius = newRadius
+      }
+
+    fitnessCntl :: Widget Input
+    fitnessCntl = do
+      newFitness <- 
+        label ("Фитнес функция: " :: JSString) ++>
+          textArea (inputFitness input) ! atr "rows" "6" ! atr "cols" "60" <++ br 
+          <** inputSubmit "Обновить" `fire` OnClick
+      return $ input {
+        inputFitness = newFitness
+      }
+
+    evolOptionsCnt :: Widget Input 
+    evolOptionsCnt = do
+      newOptions <- bsrow <<< (label ("Настройки эволюции:" :: JSString) ++> evolOptionsCnt')
+      liftIO $ writeLog $ show newOptions
+      return $ input {
+        inputEvolOptions = newOptions
+      }
+      where
+        options = inputEvolOptions input
+
+        evolOptionsCnt' :: Widget EvolOptions 
+        evolOptionsCnt' = EvolOptions <$> mutChanceCnt <*> elitePartCnt <*> maxGenCnt <*> popCountCnt <*> indCountCnt
+          <** inputSubmit "Обновить" `fire` OnClick
+
+        mutChanceCnt :: Widget Float
+        mutChanceCnt = bsrow <<< (
+          (div ! atr "class" "col-md-6" $ label ("Шанс мутации: " :: JSString)) ++>
+          (div ! atr "class" "col-md-6" <<< inputFloat (Just $ mutationChance options)
+          `validate`
+          (\c -> return $ if c >= 0.0 && c <= 1.0 then Nothing else Just $ b ("вероятность некорректна [0, 1]" :: JSString))))
+
+        elitePartCnt :: Widget Float
+        elitePartCnt = bsrow <<< (
+          (div ! atr "class" "col-md-6" $ label ("Часть элиты: " :: JSString)) ++>
+          (div ! atr "class" "col-md-6" <<< inputFloat (Just $ elitePart options)
+          `validate`
+          (\c -> return $ if c >= 0.0 && c <= 1.0 then Nothing else Just $ b ("доля некорректна [0, 1]" :: JSString))))
+
+        maxGenCnt :: Widget Int
+        maxGenCnt = bsrow <<< (
+          (div ! atr "class" "col-md-6" $ label ("Макс поколений: " :: JSString)) ++>
+          (div ! atr "class" "col-md-6" <<< inputInt (Just $ maxGeneration options)
+          `validate`
+          (\c -> return $ if c > 0 then Nothing else Just $ b ("должно быть положительно" :: JSString))))
+
+        popCountCnt :: Widget Int
+        popCountCnt = bsrow <<< (
+         (div ! atr "class" "col-md-6" $ label ("Число популяций: " :: JSString)) ++>
+         (div ! atr "class" "col-md-6" <<< inputInt (Just $ popCount options)
+         `validate`
+         (\c -> return $ if c > 0 then Nothing else Just $ b ("должно быть положительно" :: JSString))))
+
+        indCountCnt :: Widget Int
+        indCountCnt = bsrow <<< (
+         (div ! atr "class" "col-md-6" $ label ("Число индивидов в популяции: " :: JSString)) ++>
+         (div ! atr "class" "col-md-6" <<< inputInt (Just $ indCount options)
+         `validate`
+         (\c -> return $ if c > 0 then Nothing else Just $ b ("должно быть положительно" :: JSString))))
 
 fieldConfig :: Input -> Double -> Widget Input
 fieldConfig input cellSize = do

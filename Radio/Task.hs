@@ -11,7 +11,8 @@ data Input = Input {
   inputFieldSize :: (Int, Int),
   inputTowers :: [Tower],
   inputRadius :: Int,
-  inputFitness :: String -- ^ JS expression
+  inputFitness :: String, -- ^ JS expression
+  inputEvolOptions :: EvolOptions
 } deriving (Typeable)
 
 instance Serialize Input where
@@ -20,19 +21,22 @@ instance Serialize Input where
     , ("inputTowers", toJSON $ inputTowers i)
     , ("inputRadius", toJSON $ inputRadius i)
     , ("inputFitness", toJSON $ inputFitness i)
+    , ("inputEvolOptions", toJSON $ inputEvolOptions i)
     ] 
   parseJSON j = Input 
     <$> j .: "inputFieldSize"
     <*> j .: "inputTowers"
     <*> j .: "inputRadius"
     <*> j .: "inputFitness"
+    <*> j .: "inputEvolOptions"
 
 initialInput :: Input
 initialInput = Input {
     inputFieldSize = (10, 10),
     inputTowers = [],
     inputRadius = 2,
-    inputFitness = "0.0"
+    inputFitness = "function(coverage, usedCount, totalCount)\n{\n    return 0.0;\n}",
+    inputEvolOptions = initialOptions
   }
 
 data Output = Output {
@@ -45,7 +49,7 @@ data EvolOptions = EvolOptions {
   maxGeneration :: Int,
   popCount :: Int,
   indCount :: Int
-}
+} deriving (Typeable, Show)
 
 instance Serialize EvolOptions where
   toJSON o = Dict [

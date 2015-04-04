@@ -17,7 +17,7 @@ main = do
   addJs  "https://code.jquery.com/jquery-1.11.2.min.js"
   addJs  "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"
   embedJs myJs
-  runBody $ (div ! atr "class" ".container-fluid" <<< fieldConfigWidget initialInput 50 >> return ())
+  runBody $ (div ! atr "class" ".container" <<< fieldConfigWidget initialInput 50 >> return ())
 
 addCss :: String -> IO ()
 addCss s = addHeader $ 
