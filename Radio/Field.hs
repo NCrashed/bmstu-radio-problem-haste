@@ -35,36 +35,57 @@ fieldConfigWidget input cellSize = do
 
     editingCntl :: Widget Input
     editingCntl = bsrow <<<
-          (div ! atr "class" "col-md-8" <<< radiusCntl <|> evolOptionsCnt) 
-      <|> (div ! atr "class" "col-md-4" <<< fitnessCntl)
+          (fieldOptionsCnt <|> evolOptionsCnt <|> fitnessCntl) 
+      where
+        fieldOptionsCnt = (bsrow $ label ("Настройки поля: " :: JSString) ! atr "style" "font-size: 20px") ++>
+          (bsrow <<< (radiusCntl <|> fieldWidthCntl <|> fieldHeightCntl))
+
+    makeCounter :: Int -> JSString -> JSString -> Widget Int
+    makeCounter initial labelStr errmsg = bsrow <<< 
+      ((div ! atr "class" "col-md-6" $ label (labelStr :: JSString)) ++>
+       (div ! atr "class" "col-md-6" <<< (incBtn <|> f <|> decBtn)) ) 
+      `validate` (\r -> return $ if r > 0 then Nothing else Just $ b (errmsg :: JSString))  
+      where
+        f = inputInt (Just initial) ! atr "size" "2" `fire` OnKeyUp
+        incBtn = cbutton (initial + 1) "+" `fire` OnClick
+        decBtn = cbutton (initial - 1) "-" `fire` OnClick
 
     radiusCntl :: Widget Input
     radiusCntl = do
-      let f = inputInt (Just $ inputRadius input) ! atr "size" "2"
-              `fire` OnKeyUp
-          incBtn = cbutton (inputRadius input + 1) "+" `fire` OnClick
-          decBtn = cbutton (inputRadius input - 1) "-" `fire` OnClick
-      newRadius <- bsrow ! atr "style" "margin-bottom: 40px" <<<
-          (div ! atr "class" "col-md-12" <<< (label ("Радиус: " :: JSString) ++> incBtn <|> f <|> decBtn) )
-          `validate` (\r -> return $ if r > 0 then Nothing else Just $ b ("радиус отрицателен" :: JSString))
+      newRadius <- makeCounter (inputRadius input) "Радиус: " "радиус должен быть положителен"
       return $ input {
         inputRadius = newRadius
       }
 
+    fieldWidthCntl :: Widget Input 
+    fieldWidthCntl = do
+      newWidth <- makeCounter (fst $ inputFieldSize input) "Ширина поля: " "ширина должна быть положительна"
+      return $ input {
+        inputFieldSize = (newWidth, snd $ inputFieldSize input)
+      } 
+
+    fieldHeightCntl :: Widget Input 
+    fieldHeightCntl = do
+      newHeight <- makeCounter (snd $ inputFieldSize input) "Высота поля: " "высота должна быть положительна"
+      return $ input {
+        inputFieldSize = (fst $ inputFieldSize input, newHeight)
+      } 
+
     fitnessCntl :: Widget Input
     fitnessCntl = do
-      newFitness <- 
-        label ("Фитнес функция: " :: JSString) ++>
-          textArea (inputFitness input) ! atr "rows" "6" ! atr "cols" "60" <++ br 
-          <** inputSubmit "Обновить" `fire` OnClick
+      newFitness <- bsrow <<< (
+        (bsrow $ label ("Фитнес функция: " :: JSString) ! atr "style" "margin-top: 40px; font-size: 20px") ++>
+        (bsrow <<< textArea (inputFitness input) ! atr "rows" "6" ! atr "cols" "60" <++ br 
+          <** inputSubmit "Обновить" `fire` OnClick))
       return $ input {
         inputFitness = newFitness
       }
 
     evolOptionsCnt :: Widget Input 
     evolOptionsCnt = do
-      newOptions <- bsrow <<< (label ("Настройки эволюции:" :: JSString) ++> evolOptionsCnt')
-      liftIO $ writeLog $ show newOptions
+      newOptions <- bsrow <<< (label ("Настройки эволюции:" :: JSString) ! atr "style" "margin-top: 40px; font-size: 20px" 
+        ++> evolOptionsCnt')
+      --liftIO $ writeLog $ show newOptions
       return $ input {
         inputEvolOptions = newOptions
       }
@@ -165,7 +186,7 @@ fieldConfig input cellSize = do
   return $ input { inputTowers = newTowers }
   where
     (xsize, ysize) = inputFieldSize input
-    towers = inputTowers input
+    towers = filter (\t -> inBounds (towerX t, towerY t)) $ inputTowers input
 
     toCell :: (Int, Int) -> Grid -> (Int, Int) -> (Int, Int)
     toCell (ofx, ofy) g (mx, my) = (cx -1, cy -1)
