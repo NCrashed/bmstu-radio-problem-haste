@@ -3,6 +3,8 @@ module Radio.Util(
     getElementPosition
   , styleBlock
   , getMousePosition
+  , cbutton
+  , cbuttonM
   ) where
 
 import Haste
@@ -10,7 +12,10 @@ import Haste.Foreign
 import Haste.App (MonadIO)
 import Haste.Prim
 import Control.Applicative
+import Control.Monad.IO.Class (liftIO)
 import Haste.Perch (ToElem, Perch, nelem, child)
+import Haste.HPlay.View hiding (head)
+import Prelude hiding (id)
 
 newtype JQuery = JQuery JSAny
 newtype JPosition = JPosition JSAny
@@ -58,3 +63,16 @@ getMousePosition = do
 
 styleBlock :: ToElem a => a -> Perch 
 styleBlock cont = nelem  "style" `child` cont
+
+-- | active button. When clicked, return the first parameter
+cbutton :: a -> String -> Widget a
+cbutton x slabel= static $ do
+        button slabel ! id slabel ! atr "class" "btn btn-primary" ! atr "type" "button" ! atr "style" "margin-right: 10px; margin-left: 10px; margin-top: 3px" `pass` OnClick
+        return x
+      `continuePerch` slabel
+
+cbuttonM :: IO a -> String -> Widget a
+cbuttonM x slabel= static $ do
+        button slabel ! id slabel ! atr "class" "btn btn-primary" ! atr "type" "button" ! atr "style" "margin-right: 10px; margin-left: 10px; margin-top: 3px" `pass` OnClick
+        liftIO x
+      `continuePerch` slabel

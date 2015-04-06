@@ -35,12 +35,13 @@ initialInput = Input {
     inputFieldSize = (10, 10),
     inputTowers = [],
     inputRadius = 2,
-    inputFitness = "function(coverage, usedCount, totalCount)\n{\n    return 0.0;\n}",
+    inputFitness = "function(coverage, usedCount, totalCount)\n{\n    return coverage*(1 - usedCount / totalCount);\n}",
     inputEvolOptions = initialOptions
   }
 
 data Output = Output {
-  outputTowers :: [Tower]
+  outputTowers :: [Tower],
+  outputFitness :: Float
 }
 
 data EvolOptions = EvolOptions {
@@ -78,3 +79,6 @@ initialOptions = EvolOptions {
 data PlotState = PlotState{
   values :: [(Int, Float)] -- ^ Points: x - generation number, y - fitness value
 }
+
+initialPlotState :: PlotState 
+initialPlotState = PlotState []

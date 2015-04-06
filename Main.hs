@@ -3,11 +3,10 @@ module Main where
 import Haste
 import Haste.HPlay.View hiding (head)
 
-import Radio.Field
-import Radio.Task
-import Radio.Util
+import Radio.Application
 import Control.Monad.IO.Class
 import Prelude hiding (div)
+import Radio.Util
 
 main :: IO (Maybe ())
 main = do
@@ -17,7 +16,7 @@ main = do
   addJs  "https://code.jquery.com/jquery-1.11.2.min.js"
   addJs  "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"
   embedJs myJs
-  runBody $ (div ! atr "class" ".container" <<< fieldConfigWidget initialInput 50 >> return ())
+  runBody $ div ! atr "class" ".container" <<< runApplication initialState
 
 addCss :: String -> IO ()
 addCss s = addHeader $ 
