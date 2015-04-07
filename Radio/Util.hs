@@ -26,46 +26,61 @@ import Data.IORef
 newtype JQuery = JQuery JSAny
 newtype JPosition = JPosition JSAny
 newtype JMouse = JMouse JSAny
+newtype JDocument = JDocument JSAny 
 
-js_jquery :: JSString -> IO JQuery
-js_jquery v = JQuery <$> ffi "(function(e) {return $(e);})" v
+jsJquery :: JSString -> IO JQuery
+jsJquery v = JQuery <$> ffi "(function(e) {return $(e);})" v
 
-js_offset :: JQuery -> IO JPosition
-js_offset (JQuery jsany) = JPosition <$> ffi "(function(jq) {return jq.offset();})" jsany
+jsOffset :: JQuery -> IO JPosition
+jsOffset (JQuery jsany) = JPosition <$> ffi "(function(jq) {return jq.offset();})" jsany
 
-js_left :: JPosition -> IO Int
-js_left (JPosition jsany) = ffi "(function(jp) {return jp.left;})" jsany
+jsLeft :: JPosition -> IO Int
+jsLeft (JPosition jsany) = ffi "(function(jp) {return jp.left;})" jsany
 
-js_top :: JPosition -> IO Int
-js_top (JPosition jsany) = ffi "(function(jp) {return jp.top;})" jsany
+jsTop :: JPosition -> IO Int
+jsTop (JPosition jsany) = ffi "(function(jp) {return jp.top;})" jsany
 
-js_mouse :: IO JMouse
-js_mouse = JMouse <$> ffi "(function() {return mouse;})"
+jsMouse :: IO JMouse
+jsMouse = JMouse <$> ffi "(function() {return mouse;})"
 
-js_mouse_x :: JMouse -> IO Int
-js_mouse_x (JMouse jsany) = ffi "(function(m) {return m.x;})" jsany
+jsMouseX :: JMouse -> IO Int
+jsMouseX (JMouse jsany) = ffi "(function(m) {return m.x;})" jsany
 
-js_mouse_y :: JMouse -> IO Int
-js_mouse_y (JMouse jsany) = ffi "(function(m) {return m.y;})" jsany
+jsMouseY :: JMouse -> IO Int
+jsMouseY (JMouse jsany) = ffi "(function(m) {return m.y;})" jsany
+
+jsDocument :: IO JDocument
+jsDocument = JDocument <$> ffi "(function() {return document.documentElement;})"
+
+jsPageScrollX :: JDocument -> IO Int 
+jsPageScrollX (JDocument jsany) = 
+  ffi "(function(doc) {return (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);})" jsany
+
+jsPageScrollY :: JDocument -> IO Int 
+jsPageScrollY (JDocument jsany) = 
+  ffi "(function(doc) {return (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);})" jsany
 
 -- | Since we can't name it '$', let's just call it 'j'.
 j :: JSString -> (JQuery -> IO a) -> IO a
-j s action = js_jquery s >>= action
+j s action = jsJquery s >>= action
 
 -- | Returns element position
 getElementPosition :: String -> IO (Int, Int)
 getElementPosition sel = j (toJSStr sel) $ \jq -> do
-  pos <- js_offset jq
-  xpos <- js_left pos
-  ypos <- js_top pos
+  pos <- jsOffset jq
+  xpos <- jsLeft pos
+  ypos <- jsTop pos
   return (xpos, ypos) 
 
 getMousePosition :: IO (Int, Int)
 getMousePosition = do
-  m <- js_mouse
-  x <- js_mouse_x m 
-  y <- js_mouse_y m
-  return (x, y)
+  m <- jsMouse
+  x <- jsMouseX m 
+  y <- jsMouseY m
+  doc <- jsDocument
+  sx <- jsPageScrollX doc
+  sy <- jsPageScrollY doc 
+  return (x+sx, y+sy)
 
 styleBlock :: ToElem a => a -> Perch 
 styleBlock cont = nelem  "style" `child` cont
