@@ -9,6 +9,7 @@ import Radio.Task
 import Radio.Util
 import Radio.Genetic
 import Radio.Plot
+import Radio.Config
 import System.Random
 import Haste.HPlay.View hiding (head)
 import Haste
@@ -16,6 +17,7 @@ import Haste
 data ApplicationState = AppConfigure Input 
   | AppCalculate Input PlotState GeneticState
   | AppShow Input PlotState Output
+  deriving (Show)
 
 data Route = RouteConfig | RouteCalculate | RouteShow
   deriving (Enum, Show)
@@ -24,7 +26,7 @@ initialState :: ApplicationState
 initialState = AppConfigure initialInput
 
 runApplication :: ApplicationState -> Widget ()
-runApplication state = void $ go state `wcallback` runApplication
+runApplication state = wloop state go
   where 
     go :: ApplicationState -> Widget ApplicationState
     go (AppConfigure input) = do
@@ -47,7 +49,16 @@ runApplication state = void $ go state `wcallback` runApplication
           then AppShow input newPlotState $ extractSolution input newGeneticState
           else AppCalculate input newPlotState newGeneticState
 
-    go (AppShow input plotState output) = fail "show"
+    go showState@(AppShow input plotState output) = do
+      update <- eitherWidget (showResultsWidget input plotState output) $ routeWidget state
+      case update of
+        Right route -> case route of 
+          RouteConfig -> return $ AppConfigure input 
+          RouteCalculate -> do 
+            geneticState <- liftIO initialGeneticState
+            return $ AppCalculate input plotState geneticState 
+          _ -> fail $ "invalid route in show state " ++ show route
+        Left _ -> return showState
 
 eitherWidget :: Widget a -> Widget b -> Widget (Either a b)
 eitherWidget wa wb = (return . Left =<< wa) <|> (return . Right =<< wb)
@@ -80,3 +91,6 @@ geneticWidget input geneticState plotState = do
   div ! atr "class" "col-md-2 col-md-offset-3" <<< plotWidget newPlotState "Поколение" "Фитнес" (900, 500)
   newGeneticState <- timeout 200 $ liftIO $ solve input geneticState
   return (newGeneticState, newPlotState)
+
+showResultsWidget :: Input -> PlotState -> Output -> Widget ()
+showResultsWidget input plotState output = undefined

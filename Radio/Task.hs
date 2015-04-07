@@ -13,7 +13,7 @@ data Input = Input {
   inputRadius :: Int,
   inputFitness :: String, -- ^ JS expression
   inputEvolOptions :: EvolOptions
-} deriving (Typeable)
+} deriving (Typeable, Show)
 
 instance Serialize Input where
   toJSON i = Dict [
@@ -42,7 +42,7 @@ initialInput = Input {
 data Output = Output {
   outputTowers :: [Tower],
   outputFitness :: Float
-}
+} deriving (Typeable, Show)
 
 data EvolOptions = EvolOptions {
   mutationChance :: Float,
@@ -78,7 +78,7 @@ initialOptions = EvolOptions {
 
 data PlotState = PlotState{
   values :: [(Int, Float)] -- ^ Points: x - generation number, y - fitness value
-}
+} deriving (Typeable, Show)
 
 initialPlotState :: PlotState 
 initialPlotState = PlotState []

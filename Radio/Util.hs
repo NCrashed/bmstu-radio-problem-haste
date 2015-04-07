@@ -6,6 +6,7 @@ module Radio.Util(
   , cbutton
   , cbuttonM
   , timeout
+  , wloop
   ) where
 
 import Haste
@@ -15,7 +16,8 @@ import Haste.Prim
 import Control.Applicative
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad
-import Haste.Perch (ToElem, Perch, nelem, child)
+import Data.Monoid
+import Haste.Perch (ToElem, Perch, nelem, child, span)
 import Haste.HPlay.View hiding (head)
 import Prelude hiding (id)
 import System.IO.Unsafe (unsafePerformIO)
@@ -117,3 +119,15 @@ timeout mss wa = do
 
   peekTimeout id 
   wa
+
+wloop :: a -> (a -> Widget a) -> Widget ()
+wloop initialState wa = View $ do
+  nid <- genNewId
+
+  FormElm form mx <- runView $ go nid initialState 
+    
+  return $ FormElm ((Haste.Perch.span ! atr "id" nid $ noHtml) <> form) mx
+  where
+    go nid state = do 
+      nextState <- at nid Insert (wa state)
+      go nid nextState
