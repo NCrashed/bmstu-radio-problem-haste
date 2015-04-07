@@ -11,6 +11,7 @@ import Radio.Genetic
 import Radio.Plot
 import System.Random
 import Haste.HPlay.View hiding (head)
+import Haste
 
 data ApplicationState = AppConfigure Input 
   | AppCalculate Input PlotState GeneticState
@@ -64,7 +65,7 @@ routeWidget state = div ! atr "class" "row"
 
 geneticWidget :: Input -> GeneticState -> PlotState -> Widget (GeneticState, PlotState)
 geneticWidget input geneticState plotState = do 
-  wprint $ show geneticState
+  --wprint $ show geneticState
 
   let newPlotState =  if null $ geneticPopulations geneticState
                       then plotState
@@ -76,7 +77,6 @@ geneticWidget input geneticState plotState = do
                           )] 
                       }
 
-  plotWidget newPlotState "Поколение" "Фитнес" (800, 400)
-  newGeneticState <- cbuttonM (solve input geneticState) "test"
-  wprint $ show newGeneticState
+  div ! atr "class" "col-md-2 col-md-offset-3" <<< plotWidget newPlotState "Поколение" "Фитнес" (900, 500)
+  newGeneticState <- timeout 200 $ liftIO $ solve input geneticState
   return (newGeneticState, newPlotState)

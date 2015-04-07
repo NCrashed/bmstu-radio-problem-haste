@@ -5,6 +5,7 @@ module Radio.Util(
   , getMousePosition
   , cbutton
   , cbuttonM
+  , timeout
   ) where
 
 import Haste
@@ -13,9 +14,12 @@ import Haste.App (MonadIO)
 import Haste.Prim
 import Control.Applicative
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad
 import Haste.Perch (ToElem, Perch, nelem, child)
 import Haste.HPlay.View hiding (head)
 import Prelude hiding (id)
+import System.IO.Unsafe (unsafePerformIO)
+import Data.IORef
 
 newtype JQuery = JQuery JSAny
 newtype JPosition = JPosition JSAny
@@ -76,3 +80,40 @@ cbuttonM x slabel= static $ do
         button slabel ! id slabel ! atr "class" "btn btn-primary" ! atr "type" "button" ! atr "style" "margin-right: 10px; margin-left: 10px; margin-top: 3px" `pass` OnClick
         liftIO x
       `continuePerch` slabel
+
+timeoutStore :: IORef [String] 
+timeoutStore = unsafePerformIO $ newIORef []
+
+storeTimeout :: String -> IO ()
+storeTimeout ids = do
+  idss <- readIORef timeoutStore
+  writeIORef timeoutStore $ ids : idss
+
+removeTimeout :: String -> IO ()
+removeTimeout ids = do
+  idss <- readIORef timeoutStore
+  writeIORef timeoutStore $ filter (/= ids) idss
+
+hasTimeout :: String -> IO Bool
+hasTimeout ids = elem ids <$> readIORef timeoutStore
+
+peekTimeout :: String -> Widget () 
+peekTimeout ids = do 
+  idss <- liftIO $ readIORef timeoutStore
+  case ids `elem` idss of 
+    True -> noWidget 
+    False -> return ()
+
+timeout :: Int -> Widget a -> Widget a
+timeout mss wa = do 
+  id <- genNewId
+  liftIO $ storeTimeout id
+
+  cont <- getCont
+  ht <- liftIO $ hasTimeout id
+  when ht $ setTimeout mss $ do
+    removeTimeout id
+    runCont cont
+
+  peekTimeout id 
+  wa
