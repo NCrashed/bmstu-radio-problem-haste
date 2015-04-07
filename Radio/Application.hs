@@ -29,8 +29,8 @@ runApplication :: ApplicationState -> Widget ()
 runApplication state = wloop state go
   where 
     go :: ApplicationState -> Widget ApplicationState
-    go (AppConfigure input) = do
-      update <- eitherWidget (fieldConfigWidget input 50) $ routeWidget state
+    go localState@(AppConfigure input) = do
+      update <- eitherWidget (fieldConfigWidget input 50) $ routeWidget localState
       case update of
         Right route -> case route of 
           RouteCalculate -> do
@@ -39,26 +39,27 @@ runApplication state = wloop state go
           _ -> fail $ "invalid route in config state " ++ show route
         Left newInput -> return $ AppConfigure newInput
 
-    go (AppCalculate input plotState geneticState) = do
-      update <- eitherWidget (geneticWidget input geneticState plotState) $ routeWidget state
+    go localState@(AppCalculate input plotState geneticState) = do
+      update <- eitherWidget (geneticWidget input geneticState plotState) $ routeWidget localState
       case update of 
         Right route -> case route of 
           RouteConfig -> return $ AppConfigure input 
+          RouteShow -> return $ AppShow input plotState $ extractSolution input geneticState
           _ -> fail $ "invalid route in config state " ++ show route
         Left (newGeneticState, newPlotState) -> return $ if isGeneticFinished newGeneticState 
           then AppShow input newPlotState $ extractSolution input newGeneticState
           else AppCalculate input newPlotState newGeneticState
 
-    go showState@(AppShow input plotState output) = do
-      update <- eitherWidget (showResultsWidget input plotState output) $ routeWidget state
+    go localState@(AppShow input plotState output) = do
+      update <- eitherWidget (showResultsWidget input plotState output) $ routeWidget localState
       case update of
         Right route -> case route of 
           RouteConfig -> return $ AppConfigure input 
           RouteCalculate -> do 
             geneticState <- liftIO initialGeneticState
-            return $ AppCalculate input plotState geneticState 
+            return $ AppCalculate input initialPlotState geneticState 
           _ -> fail $ "invalid route in show state " ++ show route
-        Left _ -> return showState
+        Left _ -> return localState
 
 eitherWidget :: Widget a -> Widget b -> Widget (Either a b)
 eitherWidget wa wb = (return . Left =<< wa) <|> (return . Right =<< wb)
@@ -93,4 +94,4 @@ geneticWidget input geneticState plotState = do
   return (newGeneticState, newPlotState)
 
 showResultsWidget :: Input -> PlotState -> Output -> Widget ()
-showResultsWidget input plotState output = undefined
+showResultsWidget input plotState output = noWidget
