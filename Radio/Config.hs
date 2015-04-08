@@ -5,19 +5,24 @@ import Prelude hiding (id, div)
 import Haste hiding (style)
 import Haste.Perch hiding (head)
 import Haste.HPlay.View hiding (head)
+import Control.Monad.IO.Class (liftIO)
 
 import Radio.Field
 import Radio.Task 
 import Radio.Util
 
-fieldConfigWidget :: Input -> Double -> Widget Input
-fieldConfigWidget input cellSize = do
+fieldConfigWidget :: Input -> Widget Input
+fieldConfigWidget input = do
   --writeLog $ show $ inputTowers input
+  (dwidth, _) <- liftIO $ getDocumentSize
+  let (xsize, ysize) = inputFieldSize input
+      cellSize = fromIntegral dwidth / 2 / fromIntegral xsize
   div ! atr "class" "row vertical-align" <<<
     (   div ! atr "class" "col-md-6" <<< editingCntl
-    <|> div ! atr "class" "col-md-6" <<< field )
+    <|> div ! atr "class" "col-md-6" <<< field cellSize)
   where
-    field = fieldConfig input cellSize 
+    
+    field = fieldConfig input 
 
     bsrow = div ! atr "class" "row"
 

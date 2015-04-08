@@ -33,7 +33,7 @@ runApplication state = wloop state go
   where 
     go :: ApplicationState -> Widget ApplicationState
     go localState@(AppConfigure input) = do
-      update <- eitherWidget (fieldConfigWidget input 50) $ routeWidget localState
+      update <- eitherWidget (fieldConfigWidget input) $ routeWidget localState
       case update of
         Right route -> case route of 
           RouteCalculate -> do
@@ -71,7 +71,7 @@ eitherWidget wa wb = (return . Left =<< wa) <|> (return . Right =<< wb)
 
 routeWidget :: ApplicationState -> Widget Route
 routeWidget state = div ! atr "class" "row" 
-  <<< div ! atr "class" "col-md-2 col-md-offset-5"
+  <<< div ! atr "class" "col-md-4 col-md-offset-4"
   <<< go state
   where
     go (AppConfigure _) = bigBtn RouteCalculate "Начать эволюцию"
@@ -94,7 +94,8 @@ geneticWidget input geneticState plotState = do
                           )] 
                       }
 
-  div ! atr "class" "col-md-6" <<< plotWidget newPlotState "Поколение" "Фитнес" (900, 500)
+  (dwidth, dheight) <- liftIO $ getDocumentSize
+  div ! atr "class" "col-md-6" <<< plotWidget newPlotState "Поколение" "Фитнес" ( 0.4 * fromIntegral dwidth, fromIntegral dheight / 2)
   let towersUsed = sum $ (\b -> if b then 1 else 0) <$> snd (geneticCurrentBest geneticState)
   wraw $ div ! atr "class" "col-md-6" $ panel "Текущий результат" $ mconcat [
       labelRow "Лучший фитнес: " $ show $ fst $ geneticCurrentBest geneticState
@@ -107,17 +108,21 @@ geneticWidget input geneticState plotState = do
   return (newGeneticState, newPlotState)
 
 showResultsWidget :: Input -> PlotState -> Output -> Widget ()
-showResultsWidget input plotState output = div ! atr "class" "row" <<< do
-  div ! atr "class" "col-md-6" <<< fieldShow input output 50 
-  div ! atr "class" "col-md-6" <<< do
-    plotWidget plotState "Поколение" "Фитнес" (900, 500)
-    wraw $ div ! atr "class" "row-fluid" $ mconcat [
-        div ! atr "class" "col-md-6" $ inputInfo
-      , div ! atr "class" "col-md-6" $ optionsInfo
-      , div ! atr "class" "col-md-6" $ outputInfo
-      , div ! atr "class" "col-md-6" $ otherInfo
-      ]
-  noWidget
+showResultsWidget input plotState output = do
+  (dwidth, dheight) <- liftIO $ getDocumentSize
+  let (xsize, ysize) = inputFieldSize input
+      cellSize = fromIntegral dwidth * 0.45 / fromIntegral xsize
+  div ! atr "class" "row" <<< do
+    div ! atr "class" "col-md-6" <<< fieldShow input output cellSize
+    div ! atr "class" "col-md-6" <<< do
+      plotWidget plotState "Поколение" "Фитнес" (fromIntegral dwidth / 2, fromIntegral dheight / 2)
+      wraw $ div ! atr "class" "row-fluid" $ mconcat [
+          div ! atr "class" "col-md-6" $ inputInfo
+        , div ! atr "class" "col-md-6" $ optionsInfo
+        , div ! atr "class" "col-md-6" $ outputInfo
+        , div ! atr "class" "col-md-6" $ otherInfo
+        ]
+    noWidget
   where
     opts = inputEvolOptions input 
     showTower t = "x: " ++ show (towerX t) ++ " y: " ++ show (towerY t) ++ " r: " ++ show (towerRadius t)

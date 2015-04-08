@@ -3,11 +3,13 @@ module Radio.Util(
     getElementPosition
   , styleBlock
   , getMousePosition
+  , getDocumentSize
   , cbutton
   , cbuttonM
   , timeout
   , clearTimers
   , wloop
+  , waitPageLoad
   ) where
 
 import Haste
@@ -23,6 +25,7 @@ import Haste.HPlay.View hiding (head)
 import Prelude hiding (id)
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef
+import Unsafe.Coerce 
 
 newtype JQuery = JQuery JSAny
 newtype JPosition = JPosition JSAny
@@ -61,6 +64,16 @@ jsPageScrollY :: JDocument -> IO Int
 jsPageScrollY (JDocument jsany) = 
   ffi "(function(doc) {return (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);})" jsany
 
+jsDocumentWidth :: IO Int 
+jsDocumentWidth = ffi "(function() {return $(document).width();})"
+
+jsDocumentHeight :: IO Int 
+jsDocumentHeight = ffi "(function() {return $(document).height();})"
+
+jsSetOnPageLoad :: JSFun a -> IO ()
+jsSetOnPageLoad (JSFun f) = ffi "(function (c) { document.onload = c; })" 
+  $ (unsafeCoerce f :: JSAny)
+
 -- | Since we can't name it '$', let's just call it 'j'.
 j :: JSString -> (JQuery -> IO a) -> IO a
 j s action = jsJquery s >>= action
@@ -82,6 +95,12 @@ getMousePosition = do
   sx <- jsPageScrollX doc
   sy <- jsPageScrollY doc 
   return (x+sx, y+sy)
+
+getDocumentSize :: IO (Int, Int)
+getDocumentSize = do 
+  x <- jsDocumentWidth
+  y <- jsDocumentHeight
+  return (x, y)
 
 styleBlock :: ToElem a => a -> Perch 
 styleBlock cont = nelem  "style" `child` cont
@@ -152,3 +171,16 @@ wloop initialState wa = View $ do
     go nid state = do 
       nextState <- at nid Insert (wa state)
       go nid nextState
+
+waitPageLoad :: Widget ()
+waitPageLoad = do 
+  ref <- liftIO $ newIORef False
+  cont <- getCont
+  liftIO $ jsSetOnPageLoad $ mkCallback $! do
+    writeIORef ref True
+    writeLog $ "!!"
+    runCont cont
+  refVal <- liftIO $ readIORef ref
+  case refVal of 
+    False -> noWidget
+    True -> return ()

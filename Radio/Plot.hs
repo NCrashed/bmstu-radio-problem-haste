@@ -69,10 +69,10 @@ plot xstr ystr pts (xs, ys) = coords >> xlabel >> ylabel >> grid >> plotted
     plotted = color red $ sequence_ $ stroke . uncurry line <$> intervals
     red = RGB 200 0 0
 
-    ltexscale = 2.0
+    ltexscale = 2.0 * xs / 900
     xlabel = translate (0.8*xs, 0.95*ys) $ scale (ltexscale, ltexscale) $ text (0,0) xstr
     ylabel = translate (0.05*xs, 0) $ scale (ltexscale, ltexscale) $ text (0,0) ystr
-    
+
     gridPts 
       | length localPts <= 2 = localPts
       | otherwise = head localPts : (middle ++ [last localPts])
@@ -81,7 +81,7 @@ plot xstr ystr pts (xs, ys) = coords >> xlabel >> ylabel >> grid >> plotted
         middle = takeUniform (min 10 (length middlePts)) middlePts
         
     smalltext :: Int -> Double -> Picture ()
-    smalltext n = scale (2.0, 2.0) . text (0, 0) . truncText n
+    smalltext n = scale (ltexscale, ltexscale) . text (0, 0) . truncText n
     truncText :: Int -> Double -> String
     truncText n d =  if v == "-0." ++ replicate n '0' then "0." ++ replicate n '0' else v
       where v = printf ("%."++show n++"f") d

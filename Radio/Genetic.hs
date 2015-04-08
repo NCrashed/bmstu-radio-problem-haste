@@ -48,7 +48,7 @@ solve input state
   | otherwise = do
     (newState, newGen) <- runRandT solve' $ geneticGen state
     return $ newState { geneticGen = newGen }
-    where 
+    where
       opts = inputEvolOptions input
       twrs = inputTowers input
       currGeneration = geneticCurrentGen state
