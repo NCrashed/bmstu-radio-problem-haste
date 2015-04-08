@@ -1,6 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Radio.Application where
 
 import Prelude hiding (div)
+import Data.Monoid
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Applicative
@@ -10,6 +12,7 @@ import Radio.Util
 import Radio.Genetic
 import Radio.Plot
 import Radio.Config
+import Radio.Tower
 import System.Random
 import Haste.HPlay.View hiding (head)
 import Haste
@@ -77,7 +80,7 @@ routeWidget state = div ! atr "class" "row"
 
 geneticWidget :: Input -> GeneticState -> PlotState -> Widget (GeneticState, PlotState)
 geneticWidget input geneticState plotState = do 
-  wprint $ show $ geneticCurrentBest geneticState
+  --wprint $ show $ geneticCurrentBest geneticState
 
   let newPlotState =  if null $ geneticPopulations geneticState
                       then plotState
@@ -96,5 +99,45 @@ geneticWidget input geneticState plotState = do
 showResultsWidget :: Input -> PlotState -> Output -> Widget ()
 showResultsWidget input plotState output = div ! atr "class" "row" <<< do
   div ! atr "class" "col-md-6" <<< fieldShow input output 50 
-  div ! atr "class" "col-md-6" <<< plotWidget plotState "Поколение" "Фитнес" (900, 500)
+  div ! atr "class" "col-md-6" <<< do
+    plotWidget plotState "Поколение" "Фитнес" (900, 500)
+    wraw $ div ! atr "class" "row-fluid" $ mconcat [
+        div ! atr "class" "col-md-6" $ inputInfo
+      , div ! atr "class" "col-md-6" $ optionsInfo
+      , div ! atr "class" "col-md-6" $ outputInfo
+      ]
   noWidget
+  where
+    opts = inputEvolOptions input 
+    showTower t = "x: " ++ show (towerX t) ++ " y: " ++ show (towerY t) ++ " r: " ++ show (towerRadius t)
+    showTower' t = "x: " ++ show (towerX t) ++ " y: " ++ show (towerY t)
+
+    inputInfo = panel "Входные данные" $ mconcat [
+        labelRow "Размер поля:" $ show $ inputFieldSize input
+      , labelRow "Возможные башни:" $ show $ showTower <$> inputTowers input
+      ]
+
+    optionsInfo = panel "Настройки эволюции" $ mconcat [
+        labelRow "Шанс мутации: " $ show $ mutationChance opts
+      , labelRow "Часть элиты: " $ show $ elitePart opts
+      , labelRow "Максимальное число поколений: " $ show $ maxGeneration opts
+      , labelRow "Кол-во популяций: " $ show $ popCount opts
+      , labelRow "Кол-во индивидов в популяции: " $ show $ indCount opts
+      ]
+
+    outputInfo = panel "Результаты эволюции" $ mconcat [
+        labelRow "Лучший фитнес: " $ show $ outputFitness output
+      , labelRow "Лучшее решение: " $ show $ showTower' <$> outputTowers output
+      ]
+
+    panel :: String -> Perch -> Perch
+    panel ts bd = div ! atr "class" "panel panel-default" $ mconcat [
+        div ! atr "class" "panel-heading" $ h3 ! atr "class" "panel-title" $ toJSString ts
+      , div ! atr "class" "panel-body" $ bd
+      ]
+
+    labelRow :: String -> String -> Perch
+    labelRow ts vs = div ! atr "class" "row" $ mconcat [
+        div ! atr "class" "col-md-4" $ label $ toJSString ts
+      , div ! atr "class" "col-md-8" $ toJSString vs
+      ]
