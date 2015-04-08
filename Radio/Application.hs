@@ -45,10 +45,12 @@ runApplication state = wloop state go
     go localState@(AppCalculate input plotState geneticState) = do
       update <- eitherWidget (geneticWidget input geneticState plotState) $ routeWidget localState
       case update of 
-        Right route -> case route of 
-          RouteConfig -> return $ AppConfigure input 
-          RouteShow -> return $ AppShow input plotState $ extractSolution input geneticState
-          _ -> fail $ "invalid route in config state " ++ show route
+        Right route -> do
+          liftIO $ clearTimers
+          case route of 
+            RouteConfig -> return $ AppConfigure input 
+            RouteShow -> return $ AppShow input plotState $ extractSolution input geneticState
+            _ -> fail $ "invalid route in config state " ++ show route
         Left (newGeneticState, newPlotState) -> return $ if isGeneticFinished newGeneticState 
           then AppShow input newPlotState $ extractSolution input newGeneticState
           else AppCalculate input newPlotState newGeneticState
@@ -92,7 +94,15 @@ geneticWidget input geneticState plotState = do
                           )] 
                       }
 
-  div ! atr "class" "col-md-2 col-md-offset-3" <<< plotWidget newPlotState "Поколение" "Фитнес" (900, 500)
+  div ! atr "class" "col-md-6" <<< plotWidget newPlotState "Поколение" "Фитнес" (900, 500)
+  let towersUsed = sum $ (\b -> if b then 1 else 0) <$> snd (geneticCurrentBest geneticState)
+  wraw $ div ! atr "class" "col-md-6" $ panel "Текущий результат" $ mconcat [
+      labelRow "Лучший фитнес: " $ show $ fst $ geneticCurrentBest geneticState
+    , labelRow "Башен использовано: " $ show $ towersUsed
+    , labelRow "Башен всего: " $ show $ length $ inputTowers input
+    , labelRow "Лучшее покрытие: " $ show $ calcCoverage input $ snd $ geneticCurrentBest geneticState
+    ]
+
   newGeneticState <- timeout 200 $ liftIO $ solve input geneticState
   return (newGeneticState, newPlotState)
 
@@ -105,6 +115,7 @@ showResultsWidget input plotState output = div ! atr "class" "row" <<< do
         div ! atr "class" "col-md-6" $ inputInfo
       , div ! atr "class" "col-md-6" $ optionsInfo
       , div ! atr "class" "col-md-6" $ outputInfo
+      , div ! atr "class" "col-md-6" $ otherInfo
       ]
   noWidget
   where
@@ -130,14 +141,20 @@ showResultsWidget input plotState output = div ! atr "class" "row" <<< do
       , labelRow "Лучшее решение: " $ show $ showTower' <$> outputTowers output
       ]
 
-    panel :: String -> Perch -> Perch
-    panel ts bd = div ! atr "class" "panel panel-default" $ mconcat [
-        div ! atr "class" "panel-heading" $ h3 ! atr "class" "panel-title" $ toJSString ts
-      , div ! atr "class" "panel-body" $ bd
+    otherInfo = panel "Другая информация" $ mconcat [
+        labelRow "Башен использовано: " $ show $ length $ outputTowers output
+      , labelRow "Башен всего: " $ show $ length $ inputTowers input
+      , labelRow "Лучшее покрытие: " $ show $ calcCoverage' input $ outputTowers output
       ]
 
-    labelRow :: String -> String -> Perch
-    labelRow ts vs = div ! atr "class" "row" $ mconcat [
-        div ! atr "class" "col-md-4" $ label $ toJSString ts
-      , div ! atr "class" "col-md-8" $ toJSString vs
-      ]
+panel :: String -> Perch -> Perch
+panel ts bd = div ! atr "class" "panel panel-default" $ mconcat [
+    div ! atr "class" "panel-heading" $ h3 ! atr "class" "panel-title" $ toJSString ts
+  , div ! atr "class" "panel-body" $ bd
+  ]
+
+labelRow :: String -> String -> Perch
+labelRow ts vs = div ! atr "class" "row" $ mconcat [
+    div ! atr "class" "col-md-4" $ label $ toJSString ts
+  , div ! atr "class" "col-md-8" $ toJSString vs
+  ]

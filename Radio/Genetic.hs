@@ -82,10 +82,12 @@ fitness input chr = unsafePerformIO $ userFunc coverage towerUsed towerCount
 
 -- | Calculates coverage of field by a solution
 calcCoverage :: Input -> Chromosome -> Float 
-calcCoverage input = coverage . solutionField input . flip filterTowers towers
-  where
-    towers = inputTowers input 
+calcCoverage input = calcCoverage' input . flip filterTowers towers
+  where towers = inputTowers input 
 
+calcCoverage' :: Input -> [Tower] -> Float 
+calcCoverage' input = coverage . solutionField input
+  where
     toFloat :: Int -> Float
     toFloat = fromIntegral . toInteger
 

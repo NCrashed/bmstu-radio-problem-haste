@@ -6,6 +6,7 @@ module Radio.Util(
   , cbutton
   , cbuttonM
   , timeout
+  , clearTimers
   , wloop
   ) where
 
@@ -121,6 +122,9 @@ peekTimeout ids = do
     True -> noWidget 
     False -> return ()
 
+clearTimers :: IO ()
+clearTimers = writeIORef timeoutStore []
+
 timeout :: Int -> Widget a -> Widget a
 timeout mss wa = do 
   id <- genNewId
@@ -129,8 +133,10 @@ timeout mss wa = do
   cont <- getCont
   ht <- liftIO $ hasTimeout id
   when ht $ setTimeout mss $ do
-    removeTimeout id
-    runCont cont
+    ht' <- liftIO $ hasTimeout id
+    when ht' $ do 
+      removeTimeout id
+      runCont cont
 
   peekTimeout id 
   wa
