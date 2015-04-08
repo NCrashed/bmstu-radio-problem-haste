@@ -5,6 +5,8 @@ import Prelude hiding (div)
 import Data.Monoid
 import Control.Monad
 import Control.Monad.IO.Class
+import Control.Monad.Coroutine
+import Control.Monad.Coroutine.SuspensionFunctors
 import Control.Applicative
 import Radio.Field
 import Radio.Task
@@ -18,9 +20,8 @@ import Haste.HPlay.View hiding (head)
 import Haste
 
 data ApplicationState = AppConfigure Input 
-  | AppCalculate Input PlotState GeneticState
+  | AppCalculate Input PlotState GeneticState (Maybe (Pauseable GeneticState))
   | AppShow Input PlotState Output
-  deriving (Show)
 
 data Route = RouteConfig | RouteCalculate | RouteShow
   deriving (Enum, Show)
@@ -38,12 +39,12 @@ runApplication state = wloop state go
         Right route -> case route of 
           RouteCalculate -> do
             geneticState <- liftIO initialGeneticState
-            return $ AppCalculate input initialPlotState geneticState
+            return $ AppCalculate input initialPlotState geneticState Nothing
           _ -> fail $ "invalid route in config state " ++ show route
         Left newInput -> return $ AppConfigure newInput
 
-    go localState@(AppCalculate input plotState geneticState) = do
-      update <- eitherWidget (geneticWidget input geneticState plotState) $ routeWidget localState
+    go localState@(AppCalculate input plotState geneticState coroutine) = do
+      update <- eitherWidget (geneticWidget input geneticState plotState coroutine) $ routeWidget localState
       case update of 
         Right route -> do
           liftIO $ clearTimers
@@ -51,9 +52,9 @@ runApplication state = wloop state go
             RouteConfig -> return $ AppConfigure input 
             RouteShow -> return $ AppShow input plotState $ extractSolution input geneticState
             _ -> fail $ "invalid route in config state " ++ show route
-        Left (newGeneticState, newPlotState) -> return $ if isGeneticFinished newGeneticState 
+        Left (newGeneticState, newPlotState, newCoroutine) -> return $ if isGeneticFinished newGeneticState 
           then AppShow input newPlotState $ extractSolution input newGeneticState
-          else AppCalculate input newPlotState newGeneticState
+          else AppCalculate input newPlotState newGeneticState newCoroutine
 
     go localState@(AppShow input plotState output) = do
       update <- eitherWidget (showResultsWidget input plotState output) $ routeWidget localState
@@ -62,7 +63,7 @@ runApplication state = wloop state go
           RouteConfig -> return $ AppConfigure input 
           RouteCalculate -> do 
             geneticState <- liftIO initialGeneticState
-            return $ AppCalculate input initialPlotState geneticState 
+            return $ AppCalculate input initialPlotState geneticState Nothing
           _ -> fail $ "invalid route in show state " ++ show route
         Left _ -> return localState
 
@@ -74,14 +75,14 @@ routeWidget state = div ! atr "class" "row"
   <<< div ! atr "class" "col-md-4 col-md-offset-4"
   <<< go state
   where
-    go (AppConfigure _) = bigBtn RouteCalculate "Начать эволюцию"
-    go (AppCalculate _ _ _) = bigBtn RouteConfig "Назад"  <|> bigBtn RouteShow "Остановить"
-    go (AppShow _ _ _) = bigBtn RouteConfig "Начать с начала" <|> bigBtn RouteCalculate "Перерасчитать"
+    go (AppConfigure {}) = bigBtn RouteCalculate "Начать эволюцию"
+    go (AppCalculate {}) = bigBtn RouteConfig "Назад"  <|> bigBtn RouteShow "Остановить"
+    go (AppShow {}) = bigBtn RouteConfig "Начать с начала" <|> bigBtn RouteCalculate "Перерасчитать"
 
     bigBtn v s = cbutton v s <! [atr "class" "btn btn-primary btn-lg"]
 
-geneticWidget :: Input -> GeneticState -> PlotState -> Widget (GeneticState, PlotState)
-geneticWidget input geneticState plotState = do 
+geneticWidget :: Input -> GeneticState -> PlotState -> Maybe (Pauseable GeneticState) -> Widget (GeneticState, PlotState, Maybe (Pauseable GeneticState))
+geneticWidget input geneticState plotState coroutine = do 
   --wprint $ show $ geneticCurrentBest geneticState
 
   let newPlotState =  if null $ geneticPopulations geneticState
@@ -104,8 +105,14 @@ geneticWidget input geneticState plotState = do
     , labelRow "Лучшее покрытие: " $ show $ calcCoverage input $ snd $ geneticCurrentBest geneticState
     ]
 
-  newGeneticState <- timeout 200 $ liftIO $ solve input geneticState
-  return (newGeneticState, newPlotState)
+  corRes <- timeout 10 $ liftIO $ case coroutine of 
+    Nothing -> resume $ solve input geneticState
+    Just cr -> resume cr
+  (newGeneticState, newCoroutine) <- case corRes of 
+    Left (Yield _ paused) -> return (geneticState, Just paused)
+    Right genst -> return (genst, Nothing)
+  
+  return (newGeneticState, newPlotState, newCoroutine)
 
 showResultsWidget :: Input -> PlotState -> Output -> Widget ()
 showResultsWidget input plotState output = do

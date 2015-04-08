@@ -9,10 +9,14 @@ import Control.Arrow
 import Control.Monad.Random as Rand
 import Control.Monad as Monad
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Coroutine
+import Control.Monad.Coroutine.SuspensionFunctors
+import Control.Monad.Trans.Class
 import System.IO.Unsafe  
 import Haste.Prim
 import Haste.Foreign
 import Haste 
+import Debug.Trace
 
 import Radio.Task
 import Radio.Tower 
@@ -20,7 +24,9 @@ import Radio.Random
 
 type Chromosome = [Bool]
 type Population = [Chromosome]
-type GenRand = RandT HasteGen IO 
+type GenRand = RandT HasteGen 
+type Pauseable = Coroutine (Yield ()) IO
+type PauseableRand = GenRand Pauseable
 type Field = [[Int]]
 
 data GeneticState = GeneticState {
@@ -41,8 +47,11 @@ extractSolution input state = Output (filterTowers chr $ inputTowers input) fit
 isGeneticFinished :: GeneticState -> Bool 
 isGeneticFinished = geneticFinished
 
+pause :: PauseableRand ()
+pause = lift $ yield ()
+
 -- | Solving the problem using genetic algorithm
-solve :: Input -> GeneticState -> IO GeneticState
+solve :: Input -> GeneticState -> Pauseable GeneticState
 solve input state 
   | isGeneticFinished state = return state
   | otherwise = do
@@ -52,11 +61,12 @@ solve input state
       opts = inputEvolOptions input
       twrs = inputTowers input
       currGeneration = geneticCurrentGen state
+      solve' :: PauseableRand GeneticState
       solve' = do
         pops <- if currGeneration == 0 
-          then replicateM (popCount opts) $ initPopulation (indCount opts) (length twrs)
+          then replicateM (popCount opts) $ pause >> (initPopulation (indCount opts) (length twrs))
           else return $ geneticPopulations state
-        newPops <- mapM (nextPopulation input) pops
+        newPops <- mapM (\p -> pause >> nextPopulation input p) pops
         let currBest = findBest input newPops
         return $ state {
           geneticFinished = isFinished $ fst currBest,
@@ -126,21 +136,22 @@ findPopBest :: Input -> Population -> (Float, Chromosome)
 findPopBest input pop = maximumBy (compare `on` fst) $ first (fitness input) <$> zip pop pop
     
 -- | Creating chromosome with random values, n is a length of chromosome
-initChromosome :: Int -> GenRand Chromosome
+initChromosome :: Int -> PauseableRand Chromosome
 initChromosome n = replicateM n getRandom
 
 -- | Creating population with m chromosomes with length n
-initPopulation :: Int -> Int -> GenRand Population
+initPopulation :: Int -> Int -> PauseableRand Population
 initPopulation m n = replicateM m $ initChromosome n
 
 -- | Helper to choose between two elements with provided chance of the first one
-randChoice :: Rational -> GenRand a -> GenRand a -> GenRand a
+randChoice :: Rational -> PauseableRand a -> PauseableRand a -> PauseableRand a
 randChoice chance th els = join (Rand.fromList [(th, chance), (els, 1 - chance)])
 
 -- | Caclulates next generation of population
-nextPopulation :: Input -> Population -> GenRand Population
+nextPopulation :: Input -> Population -> PauseableRand Population
 nextPopulation input pop = do 
-  newPop' <- liftM concat $ replicateM (ceiling $ fromIntegral nonEliteCount / 2) $ do
+  newPop' <- liftM concat $ forM [1 .. ceiling $ fromIntegral nonEliteCount / 2] $ \i -> do
+    when (i `mod` 10 == 0) pause
     a1 <- takeChr
     b1 <- takeChr
     (a2, b2) <- crossover a1 b1
@@ -162,7 +173,7 @@ nextPopulation input pop = do
         
 -- | Crossover operator, fallbacks to trival cases if length isn't enough for
 -- thre pointed crossover
-crossover :: Chromosome -> Chromosome -> GenRand (Chromosome, Chromosome)
+crossover :: Chromosome -> Chromosome -> PauseableRand (Chromosome, Chromosome)
 crossover a b
   | length a /= length b = error "Chromosomes have different lengths"
   | length a <= 1 = return (a, b)
@@ -173,7 +184,7 @@ crossover a b
   | otherwise = crossover3 a b
   
 -- | Implements three point crossover. Length of chromosome must be > 3
-crossover3 :: Chromosome -> Chromosome -> GenRand (Chromosome, Chromosome)
+crossover3 :: Chromosome -> Chromosome -> PauseableRand (Chromosome, Chromosome)
 crossover3 a b = do
   [p1, p2, p3] <- sort <$> replicateM 3 (getRandomR (1, n - 2))
   let a' = concat [slice 0 p1 a, slice p1 p2 b, slice p2 p3 a, slice p3 n b]
@@ -184,7 +195,7 @@ crossover3 a b = do
     slice i1 i2 = take (i2 - i1) . drop i1
 
 -- | Implements mutation of one bit
-mutation :: Chromosome -> GenRand Chromosome
+mutation :: Chromosome -> PauseableRand Chromosome
 mutation [] = return []
 mutation a = do
   i <- getRandomR (0, length a - 1)
