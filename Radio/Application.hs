@@ -77,7 +77,7 @@ routeWidget state = div ! atr "class" "row"
 
 geneticWidget :: Input -> GeneticState -> PlotState -> Widget (GeneticState, PlotState)
 geneticWidget input geneticState plotState = do 
-  --wprint $ show geneticState
+  wprint $ show $ geneticCurrentBest geneticState
 
   let newPlotState =  if null $ geneticPopulations geneticState
                       then plotState
@@ -94,4 +94,7 @@ geneticWidget input geneticState plotState = do
   return (newGeneticState, newPlotState)
 
 showResultsWidget :: Input -> PlotState -> Output -> Widget ()
-showResultsWidget input plotState output = noWidget
+showResultsWidget input plotState output = div ! atr "class" "row" <<< do
+  div ! atr "class" "col-md-6" <<< fieldShow input output 50 
+  div ! atr "class" "col-md-6" <<< plotWidget plotState "Поколение" "Фитнес" (900, 500)
+  noWidget

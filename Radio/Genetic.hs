@@ -76,8 +76,10 @@ fitness input chr = unsafePerformIO $ userFunc coverage towerUsed towerCount
 
 -- | Calculates coverage of field by a solution
 calcCoverage :: Input -> Chromosome -> Float 
-calcCoverage input = coverage . solutionField input
+calcCoverage input = coverage . solutionField input . flip filterTowers towers
   where
+    towers = inputTowers input 
+
     toFloat :: Int -> Float
     toFloat = fromIntegral . toInteger
 
@@ -88,20 +90,20 @@ calcCoverage input = coverage . solutionField input
         area = length $ concat f
 
 -- | Builds field, each cell contains count of towers that covers the cell
-solutionField :: Input -> Chromosome -> Field 
-solutionField input chr = makeRow <$> [0 .. height]
+solutionField :: Input -> [Tower] -> Field 
+solutionField input towers = makeRow <$> [0 .. height]
   where
     (width, height) = inputFieldSize input
-    towers = inputTowers input
     makeRow y = (\x -> sum $ bool2int . inRadius x y <$> towers) <$> [0 .. width]
 
     bool2int b = if b then 1 else 0
 
     inRadius :: Int -> Int -> Tower -> Bool
-    inRadius x y t = dx*dx + dy*dy <= towerRadius t 
+    inRadius x y t = dx*dx + dy*dy <= r*r
       where 
-        dx = towerX t - x 
-        dy = towerY t - y
+        r = fromIntegral (towerRadius t) + 0.5
+        dx = fromIntegral $ towerX t - x 
+        dy = fromIntegral $ towerY t - y
 
 -- | Returns only placed towers by solution in chromosome
 filterTowers :: Chromosome -> [Tower] -> [Tower]

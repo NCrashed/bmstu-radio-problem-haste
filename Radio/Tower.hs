@@ -12,6 +12,9 @@ data Tower = Tower {
   towerRadius :: Int
 } deriving (Show)
 
+instance Eq Tower where
+  t1 == t2 = towerX t1 == towerX t2 && towerY t1 == towerY t2
+  
 instance Serialize Tower where
   toJSON t = Dict [
       ("towerX", toJSON $ towerX t)

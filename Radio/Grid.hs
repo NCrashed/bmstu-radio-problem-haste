@@ -8,8 +8,8 @@ data Grid = Grid {
   cellToPixel :: (Int, Int) -> Point
 }
 
-grid :: Int -> Int -> Double -> Grid
-grid xsize ysize cellSize = Grid {
+grid :: Int -> Int -> Double -> (Int -> Int -> Color) -> Grid
+grid xsize ysize cellSize cellColor = Grid {
     drawGrid = makeColumns
   , pixelToCell = \(x, y) -> (
       floor (fromIntegral x / cellSize), 
@@ -25,4 +25,8 @@ grid xsize ysize cellSize = Grid {
         cell x y = 
           let dx = fromIntegral x * cellSize
               dy = fromIntegral y * cellSize
-          in translate (dx, dy) $  stroke $ rect (0, 0) (cellSize, cellSize)
+              c = cellColor x y
+              shape = rect (0, 0) (cellSize, cellSize)
+              body = color c $ fill shape 
+              contour = stroke shape
+          in translate (dx, dy) $ body >> contour

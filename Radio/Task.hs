@@ -32,9 +32,9 @@ instance Serialize Input where
 
 initialInput :: Input
 initialInput = Input {
-    inputFieldSize = (10, 10),
+    inputFieldSize = (20, 20),
     inputTowers = [],
-    inputRadius = 2,
+    inputRadius = 3,
     inputFitness = "function(coverage, usedCount, totalCount)\n{\n    return coverage*(1 - usedCount / totalCount);\n}",
     inputEvolOptions = initialOptions
   }
@@ -71,7 +71,7 @@ initialOptions :: EvolOptions
 initialOptions = EvolOptions {
     mutationChance = 0.3,
     elitePart = 0.1,
-    maxGeneration = 10,
+    maxGeneration = 100,
     popCount = 1,
     indCount = 10 
   }
