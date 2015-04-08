@@ -81,7 +81,7 @@ fieldConfigWidget input cellSize = do
         options = inputEvolOptions input
 
         evolOptionsCnt' :: Widget EvolOptions 
-        evolOptionsCnt' = EvolOptions <$> mutChanceCnt <*> elitePartCnt <*> maxGenCnt <*> popCountCnt <*> indCountCnt
+        evolOptionsCnt' = EvolOptions <$> mutChanceCnt <*> elitePartCnt <*> maxGenCnt <*> popCountCnt <*> indCountCnt <*> pure Nothing
           <** inputSubmit "Обновить" `fire` OnClick
 
         mutChanceCnt :: Widget Float

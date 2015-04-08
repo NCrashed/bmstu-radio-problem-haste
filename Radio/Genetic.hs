@@ -3,6 +3,7 @@ module Radio.Genetic where
 import Prelude as P
 import Data.Function
 import Data.Functor
+import Data.Maybe
 import Data.List as List
 import Control.Arrow 
 import Control.Monad.Random as Rand
@@ -56,12 +57,17 @@ solve input state
           then replicateM (popCount opts) $ initPopulation (indCount opts) (length twrs)
           else return $ geneticPopulations state
         newPops <- mapM (nextPopulation input) pops
+        let currBest = findBest input newPops
         return $ state {
-          geneticFinished = currGeneration + 1 >= maxGeneration opts,
+          geneticFinished = isFinished $ fst currBest,
           geneticCurrentGen = currGeneration + 1,
           geneticPopulations = newPops,
-          geneticCurrentBest = findBest input newPops
+          geneticCurrentBest = currBest
         }
+
+      isFinished fit = 
+           currGeneration + 1 >= maxGeneration opts
+        || (isJust (targetFitness opts) && fit >= fromJust (targetFitness opts))
 
 -- | Calculates fitness using user function
 fitness :: Input -> Chromosome -> Float

@@ -5,6 +5,7 @@ import Radio.Tower
 import Haste.Serialize
 import Haste.JSON
 import Data.Typeable
+import Data.Maybe
 import Control.Applicative
 
 data Input = Input {
@@ -49,23 +50,28 @@ data EvolOptions = EvolOptions {
   elitePart :: Float,
   maxGeneration :: Int,
   popCount :: Int,
-  indCount :: Int
+  indCount :: Int,
+  targetFitness :: Maybe Float
 } deriving (Typeable, Show)
 
 instance Serialize EvolOptions where
-  toJSON o = Dict [
+  toJSON o = Dict $ [
       ("mutationChance", toJSON $ mutationChance o)
     , ("elitePart", toJSON $ elitePart o)
     , ("maxGeneration", toJSON $ maxGeneration o)
     , ("popCount", toJSON $ popCount o)
     , ("indCount", toJSON $ indCount o)
-    ]
+    ] ++ if isJust $ targetFitness o 
+      then [("targetFitness", toJSON $ fromJust $ targetFitness o)]
+      else []
+
   parseJSON j = EvolOptions
     <$> j .: "mutationChance"
     <*> j .: "elitePart"
     <*> j .: "maxGeneration"
     <*> j .: "popCount"
     <*> j .: "indCount"
+    <*> j .:? "targetFitness"
 
 initialOptions :: EvolOptions
 initialOptions = EvolOptions {
@@ -73,7 +79,8 @@ initialOptions = EvolOptions {
     elitePart = 0.1,
     maxGeneration = 100,
     popCount = 1,
-    indCount = 10 
+    indCount = 10,
+    targetFitness = Nothing
   }
 
 data PlotState = PlotState{
