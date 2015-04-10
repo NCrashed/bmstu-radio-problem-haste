@@ -11,9 +11,6 @@ import Genetic.Population
 import Genetic.State 
 import Genetic.Options 
 
-import Control.Monad.IO.Class
-import Haste
-
 -- | Solving the problem using genetic algorithm
 solve :: Individ a => IndividOptions a -> Fitness a -> GeneticOptions -> GeneticState a -> Pauseable (GeneticState a)
 solve iopts fitness opts state 
@@ -28,7 +25,7 @@ solve iopts fitness opts state
         pops <- if currGeneration == 0 
           then replicateM (popCount opts) $ pause >> initPopulation iopts (indCount opts)
           else return $ geneticPopulations state
-        --liftIO $ writeLog $ show pops
+        
         newPops <- pops `deepseq` mapM (\p -> pause >> nextPopulation iopts fitness opts p) pops
         let currBest = findBest fitness newPops
         return $ state {
