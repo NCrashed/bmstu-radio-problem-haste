@@ -30,7 +30,7 @@ fieldConfigWidget input = do
     bsrow = div ! atr "class" "row"
 
     editingCntl :: Widget Input
-    editingCntl = bsrow <<<\
+    editingCntl = bsrow <<<
           (fieldOptionsCnt <|> evolOptionsCnt <|> fitnessCntl) 
       where
         fieldOptionsCnt = (bsrow $ label ("Настройки поля: " :: JSString) ! atr "style" "font-size: 20px") ++>
