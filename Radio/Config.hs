@@ -7,6 +7,7 @@ import Haste.Perch hiding (head)
 import Haste.HPlay.View hiding (head)
 import Control.Monad.IO.Class (liftIO)
 
+import Genetic.Options
 import Radio.Field
 import Radio.Task 
 import Radio.Util
@@ -80,13 +81,13 @@ fieldConfigWidget input = do
         ++> evolOptionsCnt')
       --liftIO $ writeLog $ show newOptions
       return $ input {
-        inputEvolOptions = newOptions
+        inputGeneticOptions = newOptions
       }
       where
-        options = inputEvolOptions input
+        options = inputGeneticOptions input
 
-        evolOptionsCnt' :: Widget EvolOptions 
-        evolOptionsCnt' = EvolOptions <$> mutChanceCnt <*> elitePartCnt <*> maxGenCnt <*> popCountCnt <*> indCountCnt <*> pure Nothing
+        evolOptionsCnt' :: Widget GeneticOptions 
+        evolOptionsCnt' = GeneticOptions <$> mutChanceCnt <*> elitePartCnt <*> maxGenCnt <*> popCountCnt <*> indCountCnt <*> pure Nothing
           <** inputSubmit "Обновить" `fire` OnClick
 
         mutChanceCnt :: Widget Float

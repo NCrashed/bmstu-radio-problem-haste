@@ -115,7 +115,7 @@ fieldShow input output cellSize = do
            ! height (show viewHeight)
            $ noHtml)
     `fire` OnClick
-  liftIO $ writeLog $ show placedTowers
+  
   wraw $ liftIO $ do 
     wcan <- getCanvasById canvasId
     case wcan of 

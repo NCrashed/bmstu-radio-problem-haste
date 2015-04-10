@@ -1,4 +1,4 @@
-module Radio.Random where
+module HasteExt.Random where
 
 import Control.Arrow
 import Control.Applicative

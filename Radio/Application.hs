@@ -3,6 +3,7 @@ module Radio.Application where
 
 import Prelude hiding (div)
 import Data.Monoid
+import Data.Maybe
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Coroutine
@@ -18,9 +19,13 @@ import Radio.Tower
 import System.Random
 import Haste.HPlay.View hiding (head)
 import Haste
+import Genetic.Options
+import Genetic.Solve 
+import Genetic.State
+import Genetic.Coroutine
 
 data ApplicationState = AppConfigure Input 
-  | AppCalculate Input PlotState GeneticState (Maybe (Pauseable GeneticState))
+  | AppCalculate Input PlotState (GeneticState TowersIndivid) (Maybe (Pauseable (GeneticState TowersIndivid)))
   | AppShow Input PlotState Output
 
 data Route = RouteConfig | RouteCalculate | RouteShow
@@ -81,7 +86,7 @@ routeWidget state = div ! atr "class" "row"
 
     bigBtn v s = cbutton v s <! [atr "class" "btn btn-primary btn-lg"]
 
-geneticWidget :: Input -> GeneticState -> PlotState -> Maybe (Pauseable GeneticState) -> Widget (GeneticState, PlotState, Maybe (Pauseable GeneticState))
+geneticWidget :: Input -> GeneticState TowersIndivid -> PlotState -> Maybe (Pauseable (GeneticState TowersIndivid)) -> Widget (GeneticState TowersIndivid, PlotState, Maybe (Pauseable (GeneticState TowersIndivid)))
 geneticWidget input geneticState plotState coroutine = do 
   --wprint $ show $ geneticCurrentBest geneticState
 
@@ -91,22 +96,22 @@ geneticWidget input geneticState plotState coroutine = do
                       { 
                         values = values plotState ++ [
                           ( geneticCurrentGen geneticState, 
-                            fst $ geneticCurrentBest geneticState
+                            fromMaybe 0 $ fst <$> geneticCurrentBest geneticState
                           )] 
                       }
 
   (dwidth, dheight) <- liftIO $ getDocumentSize
   div ! atr "class" "col-md-6" <<< plotWidget newPlotState "Поколение" "Фитнес" ( 0.4 * fromIntegral dwidth, fromIntegral dheight / 2)
-  let towersUsed = sum $ (\b -> if b then 1 else 0) <$> snd (geneticCurrentBest geneticState)
+  let towersUsed = length $ maybe [] (filterTowers input) $ snd <$> geneticCurrentBest geneticState
   wraw $ div ! atr "class" "col-md-6" $ panel "Текущий результат" $ mconcat [
-      labelRow "Лучший фитнес: " $ show $ fst $ geneticCurrentBest geneticState
+      labelRow "Лучший фитнес: " $ show $ maybe 0 fst $ geneticCurrentBest geneticState
     , labelRow "Башен использовано: " $ show $ towersUsed
     , labelRow "Башен всего: " $ show $ length $ inputTowers input
-    , labelRow "Лучшее покрытие: " $ show $ calcCoverage input $ snd $ geneticCurrentBest geneticState
+    , labelRow "Лучшее покрытие: " $ maybe "" show $ calcCoverage input . snd <$> geneticCurrentBest geneticState
     ]
 
-  corRes <- timeout 10 $ liftIO $ case coroutine of 
-    Nothing -> resume $ solve input geneticState
+  corRes <- timeout 100 $ liftIO $ case coroutine of 
+    Nothing -> resume $ solve (length $ inputTowers input) (fitness input) (inputGeneticOptions input) geneticState
     Just cr -> resume cr
   (newGeneticState, newCoroutine) <- case corRes of 
     Left (Yield _ paused) -> return (geneticState, Just paused)
@@ -131,7 +136,7 @@ showResultsWidget input plotState output = do
         ]
     noWidget
   where
-    opts = inputEvolOptions input 
+    opts = inputGeneticOptions input 
     showTower t = "x: " ++ show (towerX t) ++ " y: " ++ show (towerY t) ++ " r: " ++ show (towerRadius t)
     showTower' t = "x: " ++ show (towerX t) ++ " y: " ++ show (towerY t)
 

@@ -25,7 +25,8 @@ flag haste-inst
   Default: False
 
 executable bmstu-radio-problem-haste
-  main-is:             Main.hs    
+  main-is:             Main.hs
+  --GHC-Options:         -O2
   if flag(haste-inst)
     build-depends: base, transformers -any, haste-lib -any, haste-perch >= 0.1, hplayground >= 0.1.2, MonadRandom >= 0.3, random, monad-coroutine >= 0.9
     buildable: True
