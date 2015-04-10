@@ -5,7 +5,7 @@ name:                bmstu-radio-problem-haste
 version:             0.1.0.0
 -- synopsis:            
 -- description:         
-homepage:            https://github.com/NCrashed/bmstu-radio-problem-haste
+homepage:            https://github.com/Teaspot-Studio/bmstu-radio-problem-haste
 license:             BSD3
 license-file:        LICENSE
 author:              Anton Gushcha
@@ -18,7 +18,7 @@ cabal-version:       >=1.10
 
 source-repository head
   type: git
-  location: https://github.com/NCrashed/bmstu-radio-problem-haste
+  location: https://github.com/Teaspot-Studio/bmstu-radio-problem-haste
 
 flag haste-inst
   Description: either if it is being compiled with haste-inst or with cabal
