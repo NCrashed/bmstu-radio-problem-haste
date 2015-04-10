@@ -104,10 +104,10 @@ geneticWidget input geneticState plotState coroutine = do
   div ! atr "class" "col-md-6" <<< plotWidget newPlotState "Поколение" "Фитнес" ( 0.4 * fromIntegral dwidth, fromIntegral dheight / 2)
   let towersUsed = length $ maybe [] (filterTowers input) $ snd <$> geneticCurrentBest geneticState
   wraw $ div ! atr "class" "col-md-6" $ panel "Текущий результат" $ mconcat [
-      labelRow "Лучший фитнес: " $ show $ maybe 0 fst $ geneticCurrentBest geneticState
-    , labelRow "Башен использовано: " $ show $ towersUsed
-    , labelRow "Башен всего: " $ show $ length $ inputTowers input
-    , labelRow "Лучшее покрытие: " $ maybe "" show $ calcCoverage input . snd <$> geneticCurrentBest geneticState
+      labelRow 4 "Лучший фитнес: " $ show $ maybe 0 fst $ geneticCurrentBest geneticState
+    , labelRow 4 "Башен использовано: " $ show $ towersUsed
+    , labelRow 4 "Башен всего: " $ show $ length $ inputTowers input
+    , labelRow 4 "Лучшее покрытие: " $ maybe "" show $ calcCoverage input . snd <$> geneticCurrentBest geneticState
     ]
 
   corRes <- timeout 100 $ liftIO $ case coroutine of 
@@ -141,37 +141,25 @@ showResultsWidget input plotState output = do
     showTower' t = "x: " ++ show (towerX t) ++ " y: " ++ show (towerY t)
 
     inputInfo = panel "Входные данные" $ mconcat [
-        labelRow "Размер поля:" $ show $ inputFieldSize input
-      , labelRow "Возможные башни:" $ show $ showTower <$> inputTowers input
+        labelRow 4 "Размер поля:" $ show $ inputFieldSize input
+      , labelRow 4 "Возможные башни:" $ show $ showTower <$> inputTowers input
       ]
 
     optionsInfo = panel "Настройки эволюции" $ mconcat [
-        labelRow "Шанс мутации: " $ show $ mutationChance opts
-      , labelRow "Часть элиты: " $ show $ elitePart opts
-      , labelRow "Максимальное число поколений: " $ show $ maxGeneration opts
-      , labelRow "Кол-во популяций: " $ show $ popCount opts
-      , labelRow "Кол-во индивидов в популяции: " $ show $ indCount opts
+        labelRow 4 "Шанс мутации: " $ show $ mutationChance opts
+      , labelRow 4 "Часть элиты: " $ show $ elitePart opts
+      , labelRow 4 "Максимальное число поколений: " $ show $ maxGeneration opts
+      , labelRow 4 "Кол-во популяций: " $ show $ popCount opts
+      , labelRow 4 "Кол-во индивидов в популяции: " $ show $ indCount opts
       ]
 
     outputInfo = panel "Результаты эволюции" $ mconcat [
-        labelRow "Лучший фитнес: " $ show $ outputFitness output
-      , labelRow "Лучшее решение: " $ show $ showTower' <$> outputTowers output
+        labelRow 4 "Лучший фитнес: " $ show $ outputFitness output
+      , labelRow 4 "Лучшее решение: " $ show $ showTower' <$> outputTowers output
       ]
 
     otherInfo = panel "Другая информация" $ mconcat [
-        labelRow "Башен использовано: " $ show $ length $ outputTowers output
-      , labelRow "Башен всего: " $ show $ length $ inputTowers input
-      , labelRow "Лучшее покрытие: " $ show $ calcCoverage' input $ outputTowers output
+        labelRow 4 "Башен использовано: " $ show $ length $ outputTowers output
+      , labelRow 4 "Башен всего: " $ show $ length $ inputTowers input
+      , labelRow 4"Лучшее покрытие: " $ show $ calcCoverage' input $ outputTowers output
       ]
-
-panel :: String -> Perch -> Perch
-panel ts bd = div ! atr "class" "panel panel-default" $ mconcat [
-    div ! atr "class" "panel-heading" $ h3 ! atr "class" "panel-title" $ toJSString ts
-  , div ! atr "class" "panel-body" $ bd
-  ]
-
-labelRow :: String -> String -> Perch
-labelRow ts vs = div ! atr "class" "row" $ mconcat [
-    div ! atr "class" "col-md-4" $ label $ toJSString ts
-  , div ! atr "class" "col-md-8" $ toJSString vs
-  ]

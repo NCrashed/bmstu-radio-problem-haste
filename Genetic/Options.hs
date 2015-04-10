@@ -39,7 +39,7 @@ initialOptions :: GeneticOptions
 initialOptions = GeneticOptions {
     mutationChance = 0.3,
     elitePart = 0.1,
-    maxGeneration = 100,
+    maxGeneration = 25,
     popCount = 2,
     indCount = 10,
     targetFitness = Nothing

@@ -10,6 +10,9 @@ import Control.DeepSeq
 import System.IO.Unsafe 
 import Haste.Foreign
 import Haste.Prim
+import Haste.JSON
+import Haste.Serialize
+import Haste
 
 import Genetic.Coroutine 
 import Genetic.Individ
@@ -64,13 +67,35 @@ extractSolution input state = Output (filterTowers input ind) fit
 
 -- | Calculates fitness using user function
 fitness :: Input -> TowersIndivid -> Float
-fitness input ind = unsafePerformIO $ userFunc coverage (towerUsed ind) towerCount
+fitness input ind = unsafePerformIO $
+  userFunc coverage towerUsed towerGetter towerCount totalTowerGetter xsize ysize fieldGetter
   where
-    coverage = calcCoverage input ind
-    towerUsed = length . filterTowers input
-    towerCount = length $ inputTowers input
+    (xsize, ysize) = inputFieldSize input
+    towers = filterTowers input ind
+    totalTowers = inputTowers input
 
-    userFunc :: Float -> Int -> Int -> IO Float
+    coverage = calcCoverage input ind
+    towerUsed = length towers
+    towerCount = length totalTowers
+
+    towerGetter :: Int -> IO JSAny
+    towerGetter i = return . toObject . toJSON $ towers !! i 
+
+    totalTowerGetter :: Int -> IO JSAny
+    totalTowerGetter i = return . toObject . toJSON $ totalTowers !! i 
+
+    fieldGetter :: Int -> Int -> IO Int 
+    fieldGetter x y = return $ (solutionField input towers !! x) !! y
+
+    userFunc :: Float -- ^ Coverage
+      -> Int -- ^ count of used towers
+      -> (Int -> IO JSAny) -- ^ returns used tower by index
+      -> Int -- ^ total count of towers
+      -> (Int -> IO JSAny) -- ^ returns tower by index from all towers
+      -> Int -- ^ field width
+      -> Int -- ^ field height
+      -> (Int -> Int -> IO Int) -- ^ returns count of towers that covers the cell
+      -> IO Float
     userFunc = ffi $ toJSStr $ "(" ++ inputFitness input ++ ")"
 
 -- | Calculates coverage of field by a solution

@@ -9,9 +9,11 @@ module Radio.Util(
   , timeout
   , clearTimers
   , wloop
-  , waitPageLoad
+  , panel
+  , labelRow
   ) where
 
+import Prelude hiding (div, id)
 import Haste
 import Haste.Foreign
 import Haste.App (MonadIO)
@@ -22,7 +24,6 @@ import Control.Monad
 import Data.Monoid
 import Haste.Perch (ToElem, Perch, nelem, child, span)
 import Haste.HPlay.View hiding (head)
-import Prelude hiding (id)
 import System.IO.Unsafe (unsafePerformIO)
 import Data.IORef
 import Unsafe.Coerce 
@@ -172,15 +173,15 @@ wloop initialState wa = View $ do
       nextState <- at nid Insert (wa state)
       go nid nextState
 
-waitPageLoad :: Widget ()
-waitPageLoad = do 
-  ref <- liftIO $ newIORef False
-  cont <- getCont
-  liftIO $ jsSetOnPageLoad $ mkCallback $! do
-    writeIORef ref True
-    writeLog $ "!!"
-    runCont cont
-  refVal <- liftIO $ readIORef ref
-  case refVal of 
-    False -> noWidget
-    True -> return ()
+panel :: String -> Perch -> Perch
+panel ts bd = div ! atr "class" "panel panel-default" $ mconcat [
+    div ! atr "class" "panel-heading" $ h3 ! atr "class" "panel-title" $ toJSString ts
+  , div ! atr "class" "panel-body" $ bd
+  ]
+
+labelRow :: Int -> String -> String -> Perch
+labelRow ri ts vs = div ! atr "class" "row" $ mconcat [
+    div ! atr "class" (colClass ri) $ label $ toJSString ts
+  , div ! atr "class" (colClass (12-ri)) $ toJSString vs
+  ]
+  where colClass i = "col-md-" ++ show i

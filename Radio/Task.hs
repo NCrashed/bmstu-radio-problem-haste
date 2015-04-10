@@ -37,7 +37,7 @@ initialInput = Input {
     inputFieldSize = (20, 20),
     inputTowers = [],
     inputRadius = 3,
-    inputFitness = "function(coverage, usedCount, totalCount)\n{\n    return coverage*(1 - usedCount / totalCount);\n}",
+    inputFitness = "function(coverage, usedCount, towerUsedGetter, totalCount, towerTotalGetter, fieldWidth, fieldHeight, fieldGetter)\n{\n    return coverage*(1 - usedCount / totalCount);\n}",
     inputGeneticOptions = initialOptions
   }
 

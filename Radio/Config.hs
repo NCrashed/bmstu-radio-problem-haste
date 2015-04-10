@@ -6,6 +6,7 @@ import Haste hiding (style)
 import Haste.Perch hiding (head)
 import Haste.HPlay.View hiding (head)
 import Control.Monad.IO.Class (liftIO)
+import Data.Monoid
 
 import Genetic.Options
 import Radio.Field
@@ -17,9 +18,10 @@ fieldConfigWidget input = do
   --writeLog $ show $ inputTowers input
   (dwidth, _) <- liftIO $ getDocumentSize
   let (xsize, ysize) = inputFieldSize input
-      cellSize = fromIntegral dwidth / 2 / fromIntegral xsize
+      cellSize = fromIntegral dwidth * 0.4 / fromIntegral xsize
   div ! atr "class" "row vertical-align" <<<
-    (   div ! atr "class" "col-md-6" <<< editingCntl
+    (   ((div ! atr "class" "col-md-1" $ noHtml) ++>
+        (div ! atr "class" "col-md-5" <<< editingCntl))
     <|> div ! atr "class" "col-md-6" <<< field cellSize)
   where
     
@@ -28,7 +30,7 @@ fieldConfigWidget input = do
     bsrow = div ! atr "class" "row"
 
     editingCntl :: Widget Input
-    editingCntl = bsrow <<<
+    editingCntl = bsrow <<<\
           (fieldOptionsCnt <|> evolOptionsCnt <|> fitnessCntl) 
       where
         fieldOptionsCnt = (bsrow $ label ("Настройки поля: " :: JSString) ! atr "style" "font-size: 20px") ++>
@@ -70,7 +72,17 @@ fieldConfigWidget input = do
       newFitness <- bsrow <<< (
         (bsrow $ label ("Фитнес функция: " :: JSString) ! atr "style" "margin-top: 40px; font-size: 20px") ++>
         (bsrow <<< textArea (inputFitness input) ! atr "rows" "6" ! atr "cols" "60" <++ br 
-          <** inputSubmit "Обновить" `fire` OnClick))
+          <** (inputSubmit "Обновить" `fire` OnClick <! [atr "style" "margin-bottom: 40px"])) <++
+        (bsrow $ panel "Пояснения к параметрам:" $ mconcat [
+            labelRow 2 "coverage:" "число с плавающей запятой, процент клеток поля, покрытых хотя бы одной вышкой"
+          , labelRow 2 "usedCount:" "целочисленное, количество использованных башен"
+          , labelRow 2 "towerUsedGetter:" "функция, берующая индекс башни и возвращающая использованную башню в виде объекта {int towerX, int towerY, int towerRadius}, максимальный индекс usedCount-1, минимальный индекс 0"
+          , labelRow 2 "totalCount:" "целочисленное, количество башен на поле (включая неиспользованные в данном решении)"
+          , labelRow 2 "towerTotalGetter:" "функция, берующая индекс башни (любая на поле) и возвращающая башню в виде объекта {int towerX, int towerY, int towerRadius}, максимальный индекс totalCount-1, минимальный индекс 0"
+          , labelRow 2 "fieldWidth:" "целочисленное, ширина поля"
+          , labelRow 2 "fieldHieght:" "целочисленное, высота поля"
+          , labelRow 2 "fieldGetter:" "функция, берущая два индекса (x и y), соответствующие ячейке поля (x может принимать значения от 0 до fieldWidth-1, y может принимать значения от 0 до fieldHieght-1). Возвращает количество башен, покрывающих данную ячейку (x,y)"
+          ]))
       return $ input {
         inputFitness = newFitness
       }
