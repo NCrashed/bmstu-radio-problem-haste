@@ -1,10 +1,12 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, DeriveGeneric #-}
 module Radio.Genetic where
 
 import Data.List
 import Control.Applicative
 import Control.Monad 
 import Control.Monad.Random 
+import GHC.Generics (Generic)
+import Control.DeepSeq
 import System.IO.Unsafe 
 import Haste.Foreign
 import Haste.Prim
@@ -18,7 +20,11 @@ import Radio.Task
 import Radio.Tower 
 
 type Field = [[Int]]
+
 newtype TowersIndivid = TowersIndivid [Bool]
+  deriving (Show, Eq, Generic)
+
+instance NFData TowersIndivid
 
 instance Individ TowersIndivid where
   type IndividOptions TowersIndivid = Int
