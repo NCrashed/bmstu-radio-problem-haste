@@ -6,12 +6,28 @@ import Haste hiding (style)
 import Haste.Perch hiding (head)
 import Haste.HPlay.View hiding (head)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Random
+import Control.Monad
+import HasteExt.Random 
 import Data.Monoid
 
 import Genetic.Options
 import Radio.Field
 import Radio.Task 
 import Radio.Util
+import Radio.Tower 
+
+randomTowers :: Input -> Int -> Int -> Int -> IO [Tower]
+randomTowers input count rmin rmax = do
+  gen <- newHasteGen
+  flip evalRandT gen $ replicateM count randomTower 
+  where 
+    randomTower :: RandT HasteGen IO Tower 
+    randomTower = do 
+      i <- uniform [0 .. fst (inputFieldSize input) - 1]
+      j <- uniform [0 .. snd (inputFieldSize input) - 1]
+      r <- uniform [rmin, rmax]
+      return $ Tower i j r
 
 fieldConfigWidget :: Input -> Widget Input
 fieldConfigWidget input = do
@@ -21,17 +37,43 @@ fieldConfigWidget input = do
       cellSize = fromIntegral dwidth * 0.4 / fromIntegral xsize
   div ! atr "class" "row vertical-align" <<<
     (   ((div ! atr "class" "col-md-1" $ noHtml) ++>
-        (div ! atr "class" "col-md-5" <<< editingCntl))
-    <|> div ! atr "class" "col-md-6" <<< field cellSize)
+        (div ! atr "class" "col-md-5" <<< editingCntl ))
+    <|> div ! atr "class" "col-md-6" <<< field cellSize )
   where
     
     field = fieldConfig input 
 
     bsrow = div ! atr "class" "row"
 
+    randomFieldCntl :: Widget Input 
+    randomFieldCntl = bsrow <<< do 
+      let towersCountCnt = do
+            let val = (\(v,_,_)->v) $ inputRandomField input 
+            newVal <- makeCounter val "Число башень:" "должно быть положительно"
+            return $ input { inputRandomField = (\(_, y, z) -> (newVal, y, z)) $ inputRandomField input}
+
+      let minRadCnt = do
+            let val = (\(_,v,_)->v) $ inputRandomField input 
+            newVal <- makeCounter val "Мин. радиус:" "должно быть положительно"
+            return $ input { inputRandomField = (\(x, _, z) -> (x, newVal, z)) $ inputRandomField input}
+
+      let maxRadCnt = do
+            let val = (\(_,_,v)->v) $ inputRandomField input 
+            newVal <- makeCounter val "Макс. радиус:" "должно быть положительно"
+            return $ input { inputRandomField = (\(x, y, _) -> (x, y, newVal)) $ inputRandomField input}
+
+      let genFieldCnt = do 
+            let (curCount, curMinr, curMaxr) = inputRandomField input
+            _ <- submitButton "Случайное поле" `fire` OnClick
+            newTowers <- liftIO $ randomTowers input curCount curMinr curMaxr
+            liftIO $ writeLog $ show newTowers
+            return $ input { inputTowers = newTowers }        
+
+      towersCountCnt <|> minRadCnt <|> maxRadCnt <|> genFieldCnt
+
     editingCntl :: Widget Input
     editingCntl = bsrow <<<
-          (fieldOptionsCnt <|> evolOptionsCnt <|> fitnessCntl) 
+          (fieldOptionsCnt <|> evolOptionsCnt <|> fitnessCntl <|> randomFieldCntl) 
       where
         fieldOptionsCnt = (bsrow $ label ("Настройки поля: " :: JSString) ! atr "style" "font-size: 20px") ++>
           (bsrow <<< (radiusCntl <|> fieldWidthCntl <|> fieldHeightCntl))
